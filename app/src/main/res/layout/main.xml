@@ -15,7 +15,7 @@
         android:layout_height="wrap_content"
         android:layout_alignParentBottom="true"
         android:layout_alignParentStart="true"
-        android:text="PAUSE" />
+        android:text="暂停" />
 
     <TextView
         android:id="@+id/textView"
@@ -39,7 +39,8 @@
         android:layout_height="wrap_content"
         android:layout_above="@+id/button"
         android:layout_alignParentStart="true"
-        android:text="RECORD" />
+        android:layout_marginBottom="10dp"
+        android:text="人行" />
 
     <Button
         android:id="@+id/button2"
@@ -56,4 +57,23 @@
         android:layout_alignParentBottom="true"
         android:layout_alignParentEnd="true"
         app:srcCompat="@drawable/nan" />
+
+    <Button
+        android:id="@+id/button3"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_above="@+id/record"
+        android:layout_alignParentStart="true"
+        android:layout_marginBottom="10dp"
+        android:text="车载" />
+
+    <Button
+        android:id="@+id/button5"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_above="@+id/button3"
+        android:layout_alignParentStart="true"
+        android:layout_marginBottom="10dp"
+        android:text="重置" />
+
 </RelativeLayout>

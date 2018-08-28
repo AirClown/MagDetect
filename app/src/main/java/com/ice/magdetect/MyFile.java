@@ -1,14 +1,20 @@
 package com.ice.magdetect;
 
+import android.content.Context;
+
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
+import java.text.SimpleDateFormat;
 
 public class MyFile {
     private File file;
 
-    public MyFile(String addr){
-        file=new File(addr);
+    public MyFile(Context context,String name){
+        String addr=context.getExternalFilesDir(null)+"/";
+        SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss");
+        addr+=  formatter.format(System.currentTimeMillis());
+        file=new File(addr+"_"+name+".txt");
     }
 
     public void CreateFile(){
@@ -38,5 +44,9 @@ public class MyFile {
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    public void Cancel(){
+        file=null;
     }
 }

@@ -31,7 +31,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private SensorManager manager;
 
     private TextView tv1,tv2;
-    private Button bt1,bt2,bt3;
+    private Button bt1,bt2,bt3,bt4,bt5;
     private MyView myView;
     private ImageView iv;
 
@@ -41,10 +41,12 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private Timer timer;
     private TimerTask task;
 
+    private List<float[]> values2=new ArrayList<>();
     private List<float[]> values=new ArrayList<>();
     private int Num=100;
     private int count=0;
     private float[] Mag=new float[Num];
+
     private float[][] Mag_XYZ=new float[Num][3];
 
     private int A_num=20;
@@ -52,10 +54,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private int angle_count=0;
     private float cuAngle=0;
 
-    private MyFile file;
-    private MyFile file_x;
-    private MyFile file_y;
-    private MyFile file_z;
+    private MyFile file,file2;
+
     private boolean record=false;
     private boolean ori=false;
     private boolean xyz=false;
@@ -76,6 +76,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         bt1=(Button)findViewById(R.id.button);
         bt2=(Button)findViewById(R.id.record);
         bt3=(Button)findViewById(R.id.button2);
+        bt4=(Button)findViewById(R.id.button3);
+        bt5=(Button)findViewById(R.id.button5);
+
         bt1.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -87,23 +90,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 stop=!stop;
             }
         });
-        bt2.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if(!record){
-                    record=true;
-                    file.CreateFile();
 
-                    if(xyz) {
-                        file_x.CreateFile();
-                        file_y.CreateFile();
-                        file_z.CreateFile();
-                    }
-
-                    Toast.makeText(MainActivity.this, "开始记录数据", Toast.LENGTH_SHORT).show();
-                }
-            }
-        });
         bt3.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -115,6 +102,68 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 ori=!ori;
             }
         });
+
+        bt2.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if(!record){
+                    record=true;
+                    file=new MyFile(MainActivity.this,"Mag");
+                    file.CreateFile();
+
+                    file2=new MyFile(MainActivity.this,"Light");
+                    file2.CreateFile();
+
+                    timer.purge();
+                    timer.cancel();
+                    task.cancel();
+                    StartTimer(400);
+                    Toast.makeText(MainActivity.this, "开始记录人行数据", Toast.LENGTH_SHORT).show();
+                }else{
+                    Toast.makeText(MainActivity.this, "重复点击", Toast.LENGTH_SHORT).show();
+                }
+            }
+        });
+
+        bt4.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if(!record){
+                    record=true;
+                    file=new MyFile(MainActivity.this,"Mag");
+                    file.CreateFile();
+
+                    file2=new MyFile(MainActivity.this,"Light");
+                    file2.CreateFile();
+
+                    StartTimer(100);
+                    Toast.makeText(MainActivity.this, "开始记录车载数据", Toast.LENGTH_SHORT).show();
+                }else{
+                    Toast.makeText(MainActivity.this, "重复点击", Toast.LENGTH_SHORT).show();
+                }
+            }
+        });
+
+        bt5.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if(file!=null) {
+                    file.Cancel();
+                    file = null;
+
+                    file2.Cancel();
+                    file2=null;
+                    StartTimer(200);
+                    record = false;
+
+                    Toast.makeText(MainActivity.this, "重新生成文件", Toast.LENGTH_SHORT).show();
+                }else{
+                    Toast.makeText(MainActivity.this, "已重新生成文件", Toast.LENGTH_SHORT).show();
+                }
+
+            }
+        });
+
         myView=(MyView)findViewById(R.id.myview);
         myView.setNum(Num);
 
@@ -136,6 +185,18 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             }
         };
 
+        StartTimer(200);
+    }
+
+    private void StartTimer(int time){
+        if (timer!=null) {
+            timer.purge();
+            timer.cancel();
+            task.cancel();
+            timer = null;
+            task = null;
+        }
+
         timer=new Timer();
         task=new TimerTask() {
             @Override
@@ -145,18 +206,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 }
             }
         };
-        timer.schedule(task,1000,400);
-
-        addr=this.getExternalFilesDir(null)+"/";
-        SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd-HH-mm");
-        addr+=  formatter.format(System.currentTimeMillis());
-        file=new MyFile(addr+"_Mag.txt");
-
-        if(xyz) {
-            file_x = new MyFile(addr + "_Mag_x.txt");
-            file_y = new MyFile(addr + "_Mag_y.txt");
-            file_z = new MyFile(addr + "_Mag_z.txt");
-        }
+        timer.schedule(task,1000,time);
     }
 
     @Override
@@ -164,11 +214,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         switch (sensorEvent.sensor.getType()){
             case Sensor.TYPE_MAGNETIC_FIELD:
                 if (!ori){
-                    values.add(sensorEvent.values);
-                }
-                break;
-            case Sensor.TYPE_MAGNETIC_FIELD_UNCALIBRATED:
-                if (ori) {
                     values.add(sensorEvent.values);
                 }
                 break;
@@ -180,8 +225,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                     angle_count=0;
                 }
                 break;
-            case Sensor.TYPE_GYROSCOPE:
-                Log.e("G",(int)sensorEvent.values[0]+"");
+            case Sensor.TYPE_LIGHT:
+                values2.clear();
+                values2.add(sensorEvent.values);
+                Log.e("G",(int)sensorEvent.values[0]+","+System.currentTimeMillis());
                 break;
             default:
                 break;
@@ -194,11 +241,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
         if(record&&!stop) {
             file.WriteIntoFile("" + Mag[count]);
-            if (xyz) {
-                file_x.WriteIntoFile("" + mag[0]);
-                file_y.WriteIntoFile("" + mag[1]);
-                file_z.WriteIntoFile("" + mag[2]);
-            }
+            file2.WriteIntoFile(""+values2.get(values2.size()-1)[0]);
         }
 
         float angle=0;
@@ -256,14 +299,11 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         Sensor mag=manager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
         manager.registerListener(this,mag,SensorManager.SENSOR_DELAY_UI);
 
-        Sensor mag2=manager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD_UNCALIBRATED);
-        manager.registerListener(this,mag2,SensorManager.SENSOR_DELAY_UI);
-
         Sensor d=manager.getDefaultSensor(Sensor.TYPE_ORIENTATION);
         manager.registerListener(this,d,SensorManager.SENSOR_DELAY_UI);
 
-        Sensor g=manager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
-        manager.registerListener(this,g,SensorManager.SENSOR_DELAY_UI);
+        Sensor light=manager.getDefaultSensor(Sensor.TYPE_LIGHT);
+        manager.registerListener(this,light,SensorManager.SENSOR_DELAY_FASTEST);
     }
 
     @Override
