@@ -50,6 +50,16 @@
         android:layout_alignParentTop="true"
         android:text="OriData" />
 
+    <SurfaceView
+        android:id="@+id/surfaceView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_above="@+id/button5"
+        android:layout_alignEnd="@+id/button2"
+        android:layout_alignParentStart="true"
+        android:layout_below="@+id/textView2"
+        android:layout_marginBottom="11dp" />
+
     <ImageView
         android:id="@+id/imageView"
         android:layout_width="80dp"
@@ -75,5 +85,15 @@
         android:layout_alignParentStart="true"
         android:layout_marginBottom="10dp"
         android:text="重置" />
+
+    <Button
+        android:id="@+id/button4"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:layout_alignBottom="@+id/surfaceView"
+        android:layout_alignParentStart="true"
+        android:layout_marginBottom="15dp"
+        android:layout_marginStart="24dp"
+        android:background="@android:drawable/ic_notification_overlay" />
 
 </RelativeLayout>

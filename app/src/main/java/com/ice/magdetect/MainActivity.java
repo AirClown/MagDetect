@@ -1,6 +1,8 @@
 package com.ice.magdetect;
 
+import android.Manifest;
 import android.content.Context;
+import android.content.pm.PackageManager;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
@@ -8,9 +10,12 @@ import android.hardware.SensorManager;
 import android.os.Build;
 import android.os.Handler;
 import android.os.Message;
+import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.Surface;
+import android.view.SurfaceView;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
@@ -28,43 +33,57 @@ import java.util.TimerTask;
 
 public class MainActivity extends AppCompatActivity implements SensorEventListener{
 
+    //需要权限
+    private static final String[] PERMISSIONS = {
+            Manifest.permission.CAMERA,
+            Manifest.permission.RECORD_AUDIO,
+            Manifest.permission.WRITE_EXTERNAL_STORAGE
+    };
+
+    //传感器
     private SensorManager manager;
 
+    //摄像头
+    private MyCamera camera;
+
+    //Ui
     private TextView tv1,tv2;
-    private Button bt1,bt2,bt3,bt4,bt5;
+    private Button bt1,bt2,bt3,bt4,bt5,bt6;
     private MyView myView;
     private ImageView iv;
+    private SurfaceView surfaceView;
 
-    private boolean stop=false;
-
+    //定时器
     private Handler handler;
     private Timer timer;
     private TimerTask task;
 
     private List<float[]> values2=new ArrayList<>();
     private List<float[]> values=new ArrayList<>();
+
     private int Num=100;
     private int count=0;
     private float[] Mag=new float[Num];
-
     private float[][] Mag_XYZ=new float[Num][3];
 
-    private int A_num=20;
-    private float[] Angle=new float[A_num];
-    private int angle_count=0;
     private float cuAngle=0;
 
     private MyFile file,file2;
 
+    private boolean stop=false;
     private boolean record=false;
     private boolean ori=false;
-    private boolean xyz=false;
-    private String addr="";
+    private boolean video=false;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.main);
         manager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
+
+//        if (!hasPermissionsGranted(PERMISSIONS)) {
+//            requestPermissions(PERMISSIONS,1);
+//        }
 
         Init();
     }
@@ -78,6 +97,11 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         bt3=(Button)findViewById(R.id.button2);
         bt4=(Button)findViewById(R.id.button3);
         bt5=(Button)findViewById(R.id.button5);
+        bt6=(Button)findViewById(R.id.button4);
+        surfaceView=(SurfaceView)findViewById(R.id.surfaceView);
+
+        camera=new MyCamera(this,surfaceView);
+        camera.openCamera();
 
         bt1.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -114,9 +138,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                     file2=new MyFile(MainActivity.this,"Light");
                     file2.CreateFile();
 
-                    timer.purge();
-                    timer.cancel();
-                    task.cancel();
+                    if (video) {
+                        camera.startRecordingVideo();
+                    }
+
                     StartTimer(400);
                     Toast.makeText(MainActivity.this, "开始记录人行数据", Toast.LENGTH_SHORT).show();
                 }else{
@@ -136,6 +161,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                     file2=new MyFile(MainActivity.this,"Light");
                     file2.CreateFile();
 
+                    if (video) {
+                        camera.startRecordingVideo();
+                    }
+
                     StartTimer(100);
                     Toast.makeText(MainActivity.this, "开始记录车载数据", Toast.LENGTH_SHORT).show();
                 }else{
@@ -153,6 +182,11 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
                     file2.Cancel();
                     file2=null;
+
+                    if (video) {
+                        camera.stopRecordingVideo();
+                    }
+
                     StartTimer(200);
                     record = false;
 
@@ -161,6 +195,18 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                     Toast.makeText(MainActivity.this, "已重新生成文件", Toast.LENGTH_SHORT).show();
                 }
 
+            }
+        });
+
+        bt6.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (!video){
+                    Toast.makeText(MainActivity.this, "准备开始录像", Toast.LENGTH_SHORT).show();
+                }else {
+                    Toast.makeText(MainActivity.this, "关闭录像", Toast.LENGTH_SHORT).show();
+                }
+                video=!video;
             }
         });
 
@@ -219,11 +265,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 break;
             case Sensor.TYPE_ORIENTATION:
                 cuAngle=sensorEvent.values[0];
-                Angle[angle_count]=(float) Math.PI*(sensorEvent.values[0])/180;
-
-                if(++angle_count==A_num){
-                    angle_count=0;
-                }
                 break;
             case Sensor.TYPE_LIGHT:
                 values2.clear();
@@ -244,10 +285,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             file2.WriteIntoFile(""+values2.get(values2.size()-1)[0]);
         }
 
-        float angle=0;
         float[]  data=new float[Num];
         float[][] data2=new float[Num][3];
-        int c=0;
+
         for(int i=0,j=count;i<Num;i++){
             data[i]=Mag[j];
             data2[i]=Mag_XYZ[j];
@@ -255,13 +295,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             if(--j<0){
                 j+=Num;
             }
-
-            if (i<A_num) {
-                angle += Angle[i];
-            }
         }
 
-        angle=angle/A_num;
         iv.setPivotX(iv.getWidth()/2);
         iv.setPivotY(iv.getHeight()/2);//支点在图片中心
         iv.setRotation(cuAngle);
@@ -309,5 +344,32 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        camera.closeCamera();
     }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions,
+                                           @NonNull int[] grantResults) {
+        if (requestCode == 1) {
+            if (grantResults.length == PERMISSIONS.length) {
+                for (int result : grantResults) {
+                    if (result != PackageManager.PERMISSION_GRANTED) {
+                        Toast.makeText(this,"请给权限",Toast.LENGTH_SHORT);
+                        break;
+                    }
+                }
+            }
+        } else {
+            super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        }
+    }
+
+//    private boolean hasPermissionsGranted(String[] permissions) {
+//        for (String permission : permissions) {
+//            if (this.checkSelfPermission(permission) != PackageManager.PERMISSION_GRANTED) {
+//                return false;
+//            }
+//        }
+//        return true;
+//    }
 }
